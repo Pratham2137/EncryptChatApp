@@ -1,0 +1,17 @@
+{
+  "name": "encryptchapapp-server",
+  "version": "1.0.0",
+  "description": "Server for EncryptChatApp",
+  "license": "ISC",
+  "author": "Pratham",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "socket.io-client": "^4.8.1"
+  }
+}
