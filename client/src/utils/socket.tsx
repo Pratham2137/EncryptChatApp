@@ -1,7 +1,6 @@
 import {io} from 'socket.io-client';
-import { SOCKET_URL } from "../config/socketConfig.js";
 
-const socket = io(SOCKET_URL);
+const socket = io('http://localhost:3000');
 
 socket.on("connect", ()=>{
     console.log("Connected to the server");
@@ -10,3 +9,5 @@ socket.on("connect", ()=>{
 socket.on("disconnect", ()=>{
     console.log("Disconnected from server.");
 });
+
+export default socket;
