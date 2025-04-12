@@ -9,7 +9,10 @@ const Logout = () => {
     const handleLogout = async () => {
       try {
         setLoading(true);
-        await axios.post("http://localhost:3000/api/auth/logout");
+        await axios.post("http://localhost:3000/api/auth/logout", null, {
+          withCredentials: true, // Ensure cookies are sent with the request
+        });
+        
         navigate("/login");
       } catch (err) {
         alert("Logout failed.");

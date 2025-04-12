@@ -94,21 +94,24 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(token);
     setIsAuthenticated(true);
     scheduleTokenRefresh(token);
-    navigate("/");
+    navigate("/"); 
   };
+  
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:3000/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
+      await axios.post("http://localhost:3000/api/auth/logout", null, {
+        withCredentials: true,
       });
-    } catch {}
-    clearTimeout(refreshTimeout.current);
-    setAccessToken(null);
-    setIsAuthenticated(false);
-    navigate("/login");
+      clearTimeout(refreshTimeout.current);
+      setAccessToken(null); // Ensure accessToken is cleared
+      setIsAuthenticated(false); // Set authentication state to false
+      navigate("/login"); // Navigate to login page after logging out
+    } catch (err) {
+      alert("Logout failed.");
+    }
   };
+  
 
   useEffect(() => {
     initializeAuth();

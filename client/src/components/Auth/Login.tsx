@@ -1,9 +1,11 @@
 import axios from "axios";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../utils/AuthContext"; // Import your AuthContext
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -19,6 +21,8 @@ const Login = () => {
           });
       
           if (response.status === 200) {
+            // Login successful, call login function from AuthContext
+            login(response.data.accessToken);
             navigate("/"); // Redirect to home
           }
         } catch (err: any) {
