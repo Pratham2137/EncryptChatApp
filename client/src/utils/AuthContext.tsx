@@ -8,6 +8,7 @@ import React, {
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "./LoadingOverlay"; // Adjust path if needed
+import axios from "axios";
 
 const AuthContext = createContext(null);
 
@@ -104,10 +105,12 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true,
       });
       clearTimeout(refreshTimeout.current);
-      setAccessToken(null); // Ensure accessToken is cleared
-      setIsAuthenticated(false); // Set authentication state to false
-      navigate("/login"); // Navigate to login page after logging out
+      setAccessToken(null); 
+      setIsAuthenticated(false); 
+      navigate("/login"); 
     } catch (err) {
+      console.log("Error during logout:", err);
+      console.log("Error message:",err.message);
       alert("Logout failed.");
     }
   };

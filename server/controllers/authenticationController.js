@@ -139,8 +139,7 @@ export const refreshAccessToken = (req, res) => {
 };
 
 // Check user authentication status
-export const checkAuth = async (req, res) => {
-  console.log("Cookies received:", req.cookies); // ← Add this
+export const checkAuth = async (req, res) => { // ← Add this
   try {
     const { refreshToken } = req.cookies;
 
@@ -149,10 +148,7 @@ export const checkAuth = async (req, res) => {
         .status(401)
         .json({ success: false, message: "No refresh token provided" });
     }
-
-    console.log("Verifying refresh token:", refreshToken);
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    console.log("Decoded token:", decoded);
 
     // Find user
     const user = await User.findById(decoded.userId);

@@ -5,6 +5,8 @@ import Home from "./components/Home/Home";
 import Logout from "./components/Auth/Logout";
 import { AuthProvider } from "./utils/AuthContext";
 import ProtectedRoute from "./utils/ProtectedRoute";
+import Layout from "./layout/Layout.tsx";
+import NotFound from "./components/NotFound.tsx";
 
 function App() {
   return (
@@ -14,14 +16,12 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/logout" element={<Logout />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
+          <Route element={<Layout />}>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Home />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<NotFound/>}/>
         </Routes>
       </AuthProvider>
     </Router>

@@ -24,7 +24,6 @@ export const getMessages = async (req, res) => {
   const userId = req.user.userId;
   const receiverId = req.params.receiverId;
   const receiver = await User.findById(receiverId);
-  console.log("ReceiverId from params:", receiver);
 
 
   try {

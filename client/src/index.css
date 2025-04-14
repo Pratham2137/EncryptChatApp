@@ -1,1 +1,36 @@
 @import "tailwindcss";
+
+@theme {
+  /* Primary Colors */
+  --color-primary: #3B82F6;         /* Blue-500 */
+  --color-primary-dark: #1D4ED8;    /* Darker Blue */
+  --color-primary-light: #93C5FD;   /* Lighter Blue */
+
+  /* Secondary Colors */
+  --color-secondary: #10B981;         /* Green-500 */
+  --color-secondary-dark: #047857;    /* Darker Green */
+  --color-secondary-light: #6EE7B7;   /* Lighter Green */
+
+  /* Backgrounds */
+  --color-background: #F9FAFB;       /* Light Background */
+  --color-background-dark: #111827;  /* Dark Background */
+
+  /* Cards */
+  --color-card: #FFFFFF;       /* Light Mode Card */
+  --color-card-dark: #1F2937;  /* Dark Mode Card */
+
+  /* Text */
+  --color-text: #111827;          /* Primary Text */
+  --color-text-secondary: #6B7280; /* Secondary Text */
+  --color-text-light: #E5E7EB;     /* Light Text for Dark Mode */
+
+  /* Borders */
+  --color-border: #E5E7EB;
+  --color-border-dark: #374151;
+
+  /* Status Colors */
+  --color-success: #22C55E;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+}
