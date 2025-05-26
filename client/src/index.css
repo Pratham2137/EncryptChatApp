@@ -1,36 +1,103 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* Primary Colors */
-  --color-primary: #3B82F6;         /* Blue-500 */
-  --color-primary-dark: #1D4ED8;    /* Darker Blue */
-  --color-primary-light: #93C5FD;   /* Lighter Blue */
+  /* Light Mode Colors */
+  --color-primary: #6366F1;         /* Indigo-500 */
+  --color-primary-dark: #4338CA;    /* Indigo-700 */
+  --color-primary-light: #A5B4FC;   /* Indigo-300 */
 
-  /* Secondary Colors */
-  --color-secondary: #10B981;         /* Green-500 */
-  --color-secondary-dark: #047857;    /* Darker Green */
-  --color-secondary-light: #6EE7B7;   /* Lighter Green */
+  --color-secondary: #14B8A6;       /* Teal-500 */
+  --color-secondary-dark: #0F766E;  /* Teal-700 */
+  --color-secondary-light: #99F6E4; /* Teal-200 */
 
-  /* Backgrounds */
-  --color-background: #F9FAFB;       /* Light Background */
-  --color-background-dark: #111827;  /* Dark Background */
+  --color-background: #f6f9ff;
+  --color-card: #ffffff;
 
-  /* Cards */
-  --color-card: #FFFFFF;       /* Light Mode Card */
-  --color-card-dark: #1F2937;  /* Dark Mode Card */
+  --color-text: #1E293B;             /* Gray-800 */
+  --color-text-secondary: #6B7280;   /* Gray-500 */
+  --color-border: #E2E8F0;           /* Gray-200 */
 
-  /* Text */
-  --color-text: #111827;          /* Primary Text */
-  --color-text-secondary: #6B7280; /* Secondary Text */
-  --color-text-light: #E5E7EB;     /* Light Text for Dark Mode */
-
-  /* Borders */
-  --color-border: #E5E7EB;
-  --color-border-dark: #374151;
-
-  /* Status Colors */
   --color-success: #22C55E;
   --color-error: #EF4444;
   --color-warning: #F59E0B;
   --color-info: #3B82F6;
+
+  /* Dark Mode Colors */
+  --color-primary-darkmode: #818CF8;          /* Indigo-400 */
+  --color-primary-dark-darkmode: #6366F1;     /* Indigo-500 */
+  --color-primary-light-darkmode: #C7D2FE;    /* Indigo-200 */
+
+  --color-secondary-darkmode: #2DD4BF;        /* Teal-400 */
+  --color-secondary-dark-darkmode: #14B8A6;   /* Teal-500 */
+  --color-secondary-light-darkmode: #A7F3D0;  /* Teal-300 */
+
+  --color-background-darkmode: #0F172A;       /* Slate-900 */
+  --color-card-darkmode: #1E293B;             /* Slate-800 */
+
+  --color-text-darkmode: #F1F5F9;             /* Gray-100 */
+  --color-text-secondary-darkmode: #94A3B8;   /* Slate-400 */
+  --color-border-darkmode: #334155;           /* Slate-700 */
+}
+
+/* Utility Classes */
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.btn-secondary:hover {
+  background-color: var(--color-secondary-dark);
+}
+
+/* Cards */
+.card {
+  background-color: var(--color-card);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Text */
+.text-primary {
+  color: var(--color-primary);
+}
+.text-secondary {
+  color: var(--color-secondary);
+}
+.text-error {
+  color: var(--color-error);
+}
+
+/* Background */
+.bg-app {
+  background-color: var(--color-background);
+}
+
+/* Borders */
+.border-default {
+  border-color: var(--color-border);
+}
+
+/* Dark mode native elements */
+html.dark {
+  color-scheme: dark;
 }

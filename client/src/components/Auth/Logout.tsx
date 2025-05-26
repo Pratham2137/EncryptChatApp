@@ -3,13 +3,14 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 
 const Logout = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
   
     const handleLogout = async () => {
       try {
         setLoading(true);
-        await axios.post("http://localhost:3000/api/auth/logout", null, {
+        await axios.post(`${apiUrl}/auth/logout`, null, {
           withCredentials: true, // Ensure cookies are sent with the request
         });
         

@@ -1,54 +1,66 @@
 import React, { useState } from "react";
-import Sidebar from "../components/Navigation/Sidebar";
 import { Outlet, useLocation } from "react-router-dom";
-import Home from "../components/Home/Home";
-import Chats from "../components/Chats/Chats";
-import Contacts from "../components/Contacts/Contacts";
-import Groups from "../components/Groups/Groups";
-import Settings from "../components/Settings/Settings";
-import Profile from "../components/Settings/Profile";
 
-const layout = () => {
+import Sidebar from "../components/Navigation/Sidebar";
+import ContentArea from "../components/ContextSidebar/ContentArea";
+import MessageBox from "../components/Message/MessageBox";
+
+const Layout: React.FC = () => {
   const location = useLocation();
-  const [selectedPage, setSelectedPage] = useState("home");
 
-  const isLoginPage = location.pathname === "/login";
-  const isLogoutPage = location.pathname === "/logout";
-  const isRegisterPage = location.pathname === "/register";
+  // On auth routes, just render the page
+  if (["/login", "/register", "/logout"].includes(location.pathname)) {
+    return (
+      <div className="h-screen bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)]">
+        <Outlet />
+      </div>
+    );
+  }
 
-  const showSidebarAndNavbar = !isLoginPage && !isLogoutPage && !isRegisterPage;
+  // Main section (tabs) and selected item
+  const [selectedPage, setSelectedPage] = useState<
+    "chats" | "contacts" | "groups" | "profile" | "app-settings"
+  >("chats");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const renderPage = () => {
-    switch (selectedPage) {
-      case "home":
-        return <Home />;
-      case "chats":
-        return <Chats />;
-      case "contacts":
-        return <Contacts />;
-      case "groups":
-        return <Groups />;
-      case "settings":
-        return <Settings />;
-      case "profile":
-        return <Profile />;
-      default:
-        return <Home />;
-    }
+  const handleSelectPage = (
+    page: "chats" | "contacts" | "groups" | "profile" | "app-settings"
+  ) => {
+    setSelectedPage(page);
+    setSelectedId(null);
   };
 
   return (
-    <div className="min-h-screen bg-primary-light flex">
-      {showSidebarAndNavbar && (
-        <div className="fixed left-0 top-0 h-full z-10 transition-all w-20">
-          <Sidebar onSelectPage={setSelectedPage} selectedPage={selectedPage} />
-        </div>
-      )}
-      <main className={`flex-grow transition-all ml-20 p-2`}>
-        {renderPage()}
-      </main>
+    <div className="h-screen flex bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)]">
+      {/* 1️⃣ Icon sidebar */}
+      <div className="flex-shrink-0 h-full">
+        <Sidebar
+          onSelectPage={handleSelectPage}
+          selectedPage={selectedPage}
+        />
+      </div>
+
+      {/* 2️⃣ Context area (list or profile or app settings) */}
+      <div className="w-80 flex-shrink-0 h-full border-r border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
+        <ContentArea
+          section={selectedPage}
+          selectedId={selectedId}
+          onSelectId={setSelectedId}
+        />
+      </div>
+
+      {/* 3️⃣ Message pane (hidden during app-settings) */}
+      <div className="flex-1 h-full">
+        {selectedPage === "app-settings" ? (
+          <div className="h-full flex items-center justify-center text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
+            Select an application setting to configure
+          </div>
+        ) : (
+          <MessageBox section={selectedPage} selectedId={selectedId} />
+        )}
+      </div>
     </div>
   );
 };
 
-export default layout;
+export default Layout;

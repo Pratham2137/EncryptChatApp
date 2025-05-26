@@ -1,125 +1,116 @@
+// src/components/Navigation/Sidebar.tsx
 import React, { useState } from "react";
 import {
-  MdOutlineContacts,
-  MdContacts,
   MdOutlineMessage,
   MdMessage,
+  MdOutlineContacts,
+  MdContacts,
 } from "react-icons/md";
 import { GrGroup } from "react-icons/gr";
 import { HiMiniUserGroup } from "react-icons/hi2";
 import { IoSettingsOutline, IoSettings } from "react-icons/io5";
-import { NavLink } from "react-router-dom";
-import Logo from "../../assets/images/templogo.svg";
+import { FiGlobe, FiMoon, FiSun } from "react-icons/fi";
+import Logo from "../../assets/images/Logo.svg";
 import Settings from "../Settings/Settings";
 import TooltipWrapper from "../TooltipWrapper";
+import { useTheme } from "../../utils/ThemeContext";
+// import avatarImg from "../../assets/images/avatar.jpg";
+import { RxAvatar } from "react-icons/rx";
 
-const Sidebar = ({ onSelectPage, selectedPage }) => {
-  const appName = import.meta.env.VITE_APP_NAME;
+interface SidebarProps {
+  onSelectPage: (page: string) => void;
+  selectedPage: string;
+}
 
-  const links = [
-    {
-      id: 1,
-      title: "Chats",
-      url: "/chats",
-      icon: <MdOutlineMessage className="cursor-pointer" />,
-      icon2: <MdMessage className="cursor-pointer" />,
-      page: "chats",
-    },
-    {
-      id: 2,
-      title: "Contacts",
-      url: "/contacts",
-      icon: <MdOutlineContacts className="cursor-pointer" />,
-      icon2: <MdContacts className="cursor-pointer" />,
-      page: "contacts",
-    },
-    {
-      id: 3,
-      title: "Groups",
-      url: "/groups",
-      icon: <GrGroup className="cursor-pointer" />,
-      icon2: <HiMiniUserGroup className="cursor-pointer" />,
-      page: "groups",
-    },
-  ];
-
-  const settings = [
-    {
-      id: 1,
-      title: "Settings",
-      url: "/settings",
-      icon: <IoSettingsOutline className="cursor-pointer" />,
-      icon2: <IoSettings className="cursor-pointer" />,
-      page: "settings",
-    },
-  ];
-
+const Sidebar: React.FC<SidebarProps> = ({ onSelectPage, selectedPage }) => {
   const [showSettings, setShowSettings] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
-  const handleDropdownClose = () => {
-    setShowSettings(false);
-  };
-
-  const handleSettingsSelect = (page) => {
-    onSelectPage(page);
-    setShowSettings(false);
-  };
-
-  const isActive = (page) => selectedPage === page;
+  const mainLinks = [
+    {
+      page: "chats",
+      title: "Chats",
+      icon: <MdOutlineMessage />,
+      iconActive: <MdMessage />,
+    },
+    {
+      page: "contacts",
+      title: "Contacts",
+      icon: <MdOutlineContacts />,
+      iconActive: <MdContacts />,
+    },
+    {
+      page: "groups",
+      title: "Groups",
+      icon: <GrGroup />,
+      iconActive: <HiMiniUserGroup />,
+    },
+  ];
 
   return (
     <nav
-      className={`h-full flex flex-col justify-between items-center bg-background pb-5 pt-2`}
+      className="
+        w-16 flex-shrink-0 h-full flex flex-col justify-between items-center
+        bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]
+        border-r border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
+        py-4
+      "
     >
-      <div>
-        <h1 className="text-2xl font-bold text-text">
-          <button
-            onClick={() => onSelectPage("home")}
-            className="flex items-center gap-x-2"
-          >
-            <img src={Logo} alt="logo" className="w-10 h-10 cursor-pointer" />
-          </button>
-        </h1>
-      </div>
-      <ul className="flex-1 px-2 mt-5 flex flex-col gap-y-5">
-        {links.map((link) => (
-          <li
-            key={link.id}
-            className={`relative flex items-center p-3 font-medium rounded-full cursor-pointer transition duration-200`}
-          >
-            {/* <NavLink to={link.url} className={`text-2xl text-primary`}>
-                        {link.icon}
-                    </NavLink> */}
-            <TooltipWrapper title={link.title}>
-              <button
-                className={`text-2xl transition duration-200 ${
-                  isActive(link.page)
-                    ? "text-primary scale-110"
-                    : "text-gray-500 hover:text-primary"
-                }`}
-                onClick={() => onSelectPage(link.page)}
-              >
-                {isActive(link.page) ? link.icon2 : link.icon}
-              </button>
-            </TooltipWrapper>
-          </li>
-        ))}
+      {/* Logo */}
+      <button
+        onClick={() => onSelectPage("home")}
+        className="
+          w-15 h-15 mb-2 object-cover rounded-lg flex items-center justify-center
+          hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)]
+          transition
+        "
+      >
+        <img src={Logo} alt="Logo" className="w-12 h-12" />
+      </button>
+
+      {/* Main Links */}
+      <ul className="flex-1 flex flex-col items-center space-y-4">
+        {mainLinks.map((link) => {
+          const active = selectedPage === link.page;
+          return (
+            <li key={link.page} className="relative">
+              <TooltipWrapper title={link.title}>
+                <button
+                  onClick={() => onSelectPage(link.page)}
+                  className={`
+                    relative z-10 w-12 h-12 flex items-center justify-center text-2xl transition
+                    ${active
+                      ? `text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]`
+                      : `text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]
+                         hover:text-[var(--color-primary)] dark:hover:text-[var(--color-primary-darkmode)]`}
+                  `}
+                >
+                  {active ? link.iconActive : link.icon}
+                </button>
+              </TooltipWrapper>
+            </li>
+          );
+        })}
       </ul>
-      <ul className="relative">
-        <li>
+
+      {/* Bottom Utilities */}
+      <ul className="flex flex-col items-center space-y-4">
+        {/* Settings */}
+        <li className="relative">
           <TooltipWrapper title="Settings">
             <button
-              className={`text-2xl cursor-pointer transition duration-200 ${
-                showSettings
-                  ? "text-primary scale-110"
-                  : "text-gray-500 hover:text-primary"
-              }`}
-              onClick={() => setShowSettings((prev) => !prev)}
+              onClick={() => setShowSettings((v) => !v)}
+              className={`
+                w-12 h-12 flex items-center justify-center text-2xl transition
+                ${showSettings
+                  ? `text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]`
+                  : `text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]
+                     hover:text-[var(--color-primary)] dark:hover:text-[var(--color-primary-darkmode)]`}
+              `}
             >
               {showSettings ? <IoSettings /> : <IoSettingsOutline />}
             </button>
           </TooltipWrapper>
-
           {showSettings && (
             <Settings
               onClose={() => setShowSettings(false)}
@@ -129,6 +120,59 @@ const Sidebar = ({ onSelectPage, selectedPage }) => {
               }}
             />
           )}
+        </li>
+
+        {/* Explore/Globe */}
+        {/* <li>
+          <TooltipWrapper title="Explore">
+            <button
+              onClick={() => onSelectPage("explore")}
+              className="
+                w-12 h-12 flex items-center justify-center text-2xl transition
+                text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]
+                hover:text-[var(--color-primary)] dark:hover:text-[var(--color-primary-darkmode)]
+              "
+            >
+              <FiGlobe />
+            </button>
+          </TooltipWrapper>
+        </li> */}
+
+        {/* Theme Toggle */}
+        <li>
+          <TooltipWrapper title={theme === "dark" ? "Light Mode" : "Dark Mode"}>
+            <button
+              onClick={toggleTheme}
+              className="
+                w-12 h-12 flex items-center justify-center text-2xl transition
+                text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]
+                hover:text-[var(--color-primary)] dark:hover:text-[var(--color-primary-darkmode)]
+              "
+            >
+              {theme === "dark" ? <FiSun /> : <FiMoon />}
+            </button>
+          </TooltipWrapper>
+        </li>
+
+        {/* Avatar */}
+        <li>
+          <TooltipWrapper title="Profile">
+            <button
+              onClick={() => onSelectPage("profile")}
+              className="
+                w-12 h-12 rounded-full overflow-hidden border-2
+                border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
+                transition hover:border-[var(--color-primary)]
+              "
+            >
+              {/* <img
+                src={avatarImg}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              /> */}
+              <RxAvatar className="w-full h-full object-cover" />
+            </button>
+          </TooltipWrapper>
         </li>
       </ul>
     </nav>
