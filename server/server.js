@@ -47,6 +47,11 @@ app.use("/api/users",userRoutes);
 //Message Routes
 app.use("/api/message",messageRoutes)
 
+//Test Route
+app.use("/test",(res,req)=>{
+  res.send("hello Test");
+});
+
 
 //Start Server
 server.listen(PORT, () =>
