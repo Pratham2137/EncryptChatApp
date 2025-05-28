@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
@@ -7,6 +7,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Name is required"],
       trim: true,
+    },
+    username: {
+      type: String,
+      required: [true, "Username is required"],
+      unique: true,
+      lowercase: true,
+    },
+    desc: {
+      type: String,
+      default: "Hello there!",
     },
     email: {
       type: String,
@@ -30,9 +40,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
     isOnline: {
       type: Boolean,
       default: false,
+    },
+    refreshToken: {
+      type: String,
     },
   },
   {
@@ -41,8 +55,8 @@ const userSchema = new mongoose.Schema(
 );
 
 // 🔐 Hash the password before saving
-userSchema.pre("save", async function (next){
-  if(!this.isModified("password")) return next();
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
 
   try {
     const salt = await bcrypt.genSalt(10);
@@ -51,7 +65,7 @@ userSchema.pre("save", async function (next){
   } catch (error) {
     next(err);
   }
-})
+});
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);

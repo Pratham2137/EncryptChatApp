@@ -3,7 +3,8 @@ import User from "../models/userModel.js";
 
 export const sendMessage = async (req, res) => {
   const sender = req.user.userId;
-  const { receiver, ciphertext } = req.body;
+  const receiver = req.body.receiver;
+  const ciphertext = req.body.ciphertext ?? req.body.text;
 
   if (!receiver || !ciphertext) {
     return res

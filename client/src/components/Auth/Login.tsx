@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../utils/AuthContext";
 import { useTheme } from "../../utils/ThemeContext";
+import { useAuth } from "../../utils/AuthContext";
 
 const Login = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -12,20 +12,20 @@ const Login = () => {
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const [email, setEmail] = useState("");
+  // const [email, setEmail] = useState("");
+  // now a single “identifier” field
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const loginData = {
+      identifier: identifier.trim(),
+      password,
+    };
     try {
-      const response = await axios.post(
-        `${apiUrl}/auth/login`,
-        { email, password },
-        { withCredentials: true }
-      );
-      login(response.data.accessToken);
-      navigate("/");
+      await login(loginData);
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
     }
@@ -34,7 +34,6 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)] flex items-center justify-center px-4">
       <div className="relative w-full max-w-md bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)] border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)] p-8 rounded-md shadow-lg">
-
         {/* Dark Mode Toggle */}
         <div className="absolute top-4 right-4">
           <label className="relative inline-flex items-center cursor-pointer">
@@ -58,20 +57,29 @@ const Login = () => {
 
         <form onSubmit={handleLogin} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm mb-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">Email</label>
+            <label
+              htmlFor="identifier"
+              className="block text-sm mb-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]"
+            >
+              Username or Email
+            </label>
             <input
-              type="email"
-              placeholder="hello@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type="text"
+              placeholder="email or username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
               className="w-full px-3 py-2 rounded-md bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)] border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)] text-[var(--color-text)] dark:text-[var(--color-text-darkmode)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] dark:focus:ring-[var(--color-primary-darkmode)]"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">Password</label>
+            <label htmlFor="password" className="block text-sm mb-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               placeholder="••••••••"
               value={password}
@@ -80,26 +88,45 @@ const Login = () => {
               className="w-full px-3 py-2 rounded-md bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)] border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)] text-[var(--color-text)] dark:text-[var(--color-text-darkmode)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] dark:focus:ring-[var(--color-primary-darkmode)]"
             />
             <div className="text-right text-sm mt-1">
-              <a href="#" className="underline text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]">Forgot password?</a>
+              <a
+                href="#"
+                className="underline text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]"
+              >
+                Forgot password?
+              </a>
             </div>
           </div>
-
           <div className="flex items-center">
-            <input type="checkbox" className="form-checkbox border-[var(--color-border)] dark:border-[var(--color-border-darkmode)] text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]" />
-            <label className="ml-2 text-sm text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
+            <input
+              id="remember"
+              type="checkbox"
+              className="form-checkbox border-[var(--color-border)] dark:border-[var(--color-border-darkmode)] text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]"
+            />
+            <label htmlFor="remember" className="ml-2 text-sm text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
               Remember me
             </label>
           </div>
 
-          {error && <p className="text-sm text-[var(--color-error)]">{error}</p>}
+          {error && (
+            <p className="text-sm text-[var(--color-error)]">{error}</p>
+          )}
 
-          <button type="submit" className="w-full py-2 rounded-md bg-[var(--color-primary)] dark:bg-[var(--color-primary-darkmode)] text-white transition hover:bg-[var(--color-primary-dark)] dark:hover:bg-[var(--color-primary-dark-darkmode)]">
+          <button
+            type="submit"
+            className="w-full py-2 rounded-md bg-[var(--color-primary)] dark:bg-[var(--color-primary-darkmode)] text-white transition hover:bg-[var(--color-primary-dark)] dark:hover:bg-[var(--color-primary-dark-darkmode)]"
+          >
             Sign in
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
-          Don’t have an account? <Link to="/register" className="underline text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]">Signup now</Link>
+          Don’t have an account?{" "}
+          <Link
+            to="/register"
+            className="underline text-[var(--color-primary)] dark:text-[var(--color-primary-darkmode)]"
+          >
+            Signup now
+          </Link>
         </p>
         <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
           © 2025 {appName} Inc. All rights reserved.

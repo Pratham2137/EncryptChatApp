@@ -8,31 +8,38 @@ import {
 //login user
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
-      res
+    if (!identifier || !password) {
+      return res
         .status(400)
         .json({ success: false, message: "All fields are required" });
     }
 
-    const user = await User.findOne({ email });
+    // look up by email OR username (case-insensitive)
+    const lookup = identifier.toLowerCase();
+    const user = await User.findOne({
+      $or: [{ email: lookup }, { username: lookup }],
+    });
     if (!user) {
-      res
+      return res
         .status(401)
-        .json({ success: false, message: "Invalid Email or password" });
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     const isMatched = await user.matchPassword(password);
     if (!isMatched) {
-      res
+      return res
         .status(401)
-        .json({ success: false, message: "Invalid Email or password" });
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     // Generate tokens
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
+    user.refreshToken = refreshToken;
+    await user.save();
 
     // Send refresh token in HTTP-only cookie
     res.cookie("refreshToken", refreshToken, {
@@ -42,58 +49,98 @@ export const loginUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Logged in successful",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-      },
       accessToken,
-      refreshToken,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+    console.error("Login error after headers sent:", error);
   }
 };
 
 // Logout user
-export const logoutUser = (req, res) => {
+export const logoutUser = async (req, res) => {
   try {
+    const { refreshToken: RefreshToken } = req.cookies;
+
+    if (!RefreshToken) {
+      return res.status(400).json({ message: "No refresh token provided" });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(RefreshToken, process.env.JWT_REFRESH_SECRET);
+    } catch (error) {
+      console.error("Error verifying refresh token:", error);
+      return res
+        .status(403)
+        .json({ message: "Invalid or expired refresh token" });
+    }
+
+    let user;
+    try {
+      user = await User.findById(payload.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+    } catch (error) {
+      console.error("Error finding user:", error.message);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+
+    // Remove refresh token from user record
+    user.refreshToken = null;
+    await user.save();
+
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: false, //process.env.NODE_ENV === "production"
       sameSite: "Lax", //Strict
     });
 
-    res.status(200).json({ success: true, message: "Logged out successfully" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+    console.error("Unhandled logout error after headers sent:", error);
   }
 };
 
 //register user
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, socketId } = req.body;
+    const { name, username, email, password } = req.body;
 
     // Validate input
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+    if (!name || !username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required." });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+    // Check if email or username already exists
+    const emailExists = await User.findOne({ email: email.toLowerCase() });
+    if (emailExists) {
+      return res.status(409).json({ message: "Email is already in use." });
+    }
+    const usernameExists = await User.findOne({
+      username: username.toLowerCase(),
+    });
+    if (usernameExists) {
+      return res.status(409).json({ message: "Username is already taken." });
     }
 
+    // Create user
     const newUser = await User.create({
-      name,
-      email,
-      password,
-      socketId,
+      name: name.trim(),
+      username: username.trim().toLowerCase(),
+      email: email.trim().toLowerCase(),
+      password, // will be hashed by schema.pre("save")
     });
 
     res.status(201).json({
@@ -102,12 +149,13 @@ export const registerUser = async (req, res) => {
       user: {
         _id: newUser._id,
         name: newUser.name,
+        username: newUser.username,
         email: newUser.email,
       },
     });
   } catch (error) {
-    // ✅ Correct variable name here
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Register error:", error);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
 
@@ -139,7 +187,8 @@ export const refreshAccessToken = (req, res) => {
 };
 
 // Check user authentication status
-export const checkAuth = async (req, res) => { // ← Add this
+export const checkAuth = async (req, res) => {
+  // ← Add this
   try {
     const { refreshToken } = req.cookies;
 
@@ -159,9 +208,7 @@ export const checkAuth = async (req, res) => { // ← Add this
     }
 
     // Optional: re-issue access token
-    const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: "1h",
-    });
+    const accessToken = generateAccessToken(user._id);
 
     res.status(200).json({
       success: true,

@@ -1,109 +1,72 @@
 // src/components/Settings/Profile.tsx
-import React, { useState } from "react";
-import { FiUser, FiMail, FiPhone } from "react-icons/fi";
+import React from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "../../features/store";
+import { FiUser, FiMail, FiEdit2 } from "react-icons/fi";
+import { RiRadioButtonLine } from "react-icons/ri";
 
-interface User {
-  avatarUrl?: string;
-  name: string;
-  username: string;
-  email: string;
-  phone: string;
-  description: string;
-}
+export default function Profile() {
+  const {
+    data: user,
+    status,
+    error,
+  } = useSelector((s: RootState) => s.userProfile);
 
-const mockUser: User = {
-  // avatarUrl: "https://example.com/avatar.jpg",
-  name: "John Doe",
-  username: "johndoe123",
-  email: "john.doe@example.com",
-  phone: "+1 234 567 890",
-  description:
-    "Full-stack developer passionate about secure messaging. In my free time, I love hiking and photography.",
-};
-
-const Profile: React.FC = () => {
-  const [user] = useState<User>(mockUser);
+  if (status === "loading") return <p>Loading your profile…</p>;
+  if (status === "failed")  return <p className="text-red-500">Error: {error}</p>;
+  if (!user)               return <p>No profile found.</p>;
 
   return (
     <div className="p-6 h-full overflow-y-auto flex flex-col gap-6">
-      {/* Title */}
-      <h2 className="text-2xl font-bold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
-        Profile
-      </h2>
-
-      {/* Avatar + Name */}
+      {/* Header */}
       <div className="flex items-center gap-4">
-        {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt="avatar"
-            className="w-20 h-20 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-20 h-20 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white text-3xl">
-            <FiUser />
-          </div>
-        )}
-        <div>
-          <div className="text-xl font-semibold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
-            {user.name}
-          </div>
-          <div className="text-sm text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
-            @{user.username}
-          </div>
+        <div className="w-20 h-20 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white text-3xl">
+          <FiUser />
         </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold">{user.name}</h2>
+            <RiRadioButtonLine
+              className={`text-lg ${user.isOnline ? "text-green-500" : "text-red-500"}`}
+            />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            @{user.username}
+          </p>
+        </div>
+        <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+          <FiEdit2 className="text-xl text-gray-600 dark:text-gray-400" />
+        </button>
       </div>
 
-      {/* Details Card */}
-      <div
-        className="
-          bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]
-          border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
-          p-4 rounded-md flex flex-col gap-4
-        "
-      >
+      {/* Details */}
+      <div className="flex flex-col gap-y-4">
         {/* Email */}
-        <div>
-          <h3 className="text-sm font-medium text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
-            Email
-          </h3>
-          <p
-            className="
-              mt-1 flex items-center gap-2 
-              text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]
-            "
-          >
-            <FiMail /> {user.email}
-          </p>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-md flex items-start gap-3">
+          <FiMail className="mt-1 text-xl text-gray-600 dark:text-gray-400" />
+          <div>
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Email
+            </h3>
+            <p className="mt-1 text-gray-800 dark:text-gray-200">
+              {user.email}
+            </p>
+          </div>
         </div>
 
-        {/* Phone */}
-        <div>
-          <h3 className="text-sm font-medium text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
-            Phone
-          </h3>
-          <p
-            className="
-              mt-1 flex items-center gap-2 
-              text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]
-            "
-          >
-            <FiPhone /> {user.phone}
-          </p>
-        </div>
-
-        {/* About / Bio */}
-        <div>
-          <h3 className="text-sm font-medium text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]">
-            About
-          </h3>
-          <p className="mt-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
-            {user.description}
-          </p>
+        {/* Bio */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-md flex items-start gap-3">
+          <FiUser className="mt-1 text-xl text-gray-600 dark:text-gray-400" />
+          <div>
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Bio
+            </h3>
+            <p className="mt-1 text-gray-800 dark:text-gray-200">
+              {user.desc?.trim() || "No bio set."}
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default Profile;
+}

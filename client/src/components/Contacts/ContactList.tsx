@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-
-export interface Contact {
-  id: string;
-  name: string;
-  avatar: string;
-}
-
-const demoContacts: Contact[] = [
-  { id: "c1", name: "Alice Johnson", avatar: "👩🏼" },
-  { id: "c2", name: "Bob Smith",      avatar: "👨🏿" },
-];
+import React, { useEffect, useState, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../../features/store";
+import { IoSearch } from "react-icons/io5";
+import {
+  fetchContacts,
+  addContact,
+  Contact,
+} from "../../features/contact/contactSlice";
+import axios from "axios";
+import { useAuth } from "../../utils/AuthContext";
+import { fetchHistory, openChat } from "../../features/chat/chatSlice";
 
 interface Props {
   selectedId: string | null;
@@ -17,62 +17,191 @@ interface Props {
 }
 
 const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
-  const [search, setSearch] = useState("");
-
-  const filtered = demoContacts.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const dispatch = useDispatch<AppDispatch>();
+  const { contacts, status } = useSelector(
+    (state: RootState) => state.contacts
   );
+  const { getToken } = useAuth();
+  const token = getToken();
+
+  // New‐chat state
+  const [isSearching, setIsSearching] = useState(false);
+  const [term, setTerm] = useState("");
+  const [results, setResults] = useState<Contact[]>([]);
+  const [searchStatus, setSearchStatus] = useState<
+    "idle" | "loading" | "failed"
+  >("idle");
+
+  // 1) Load your current contacts on mount / token change
+  useEffect(() => {
+    if (token) dispatch(fetchContacts(token));
+  }, [dispatch, token]);
+
+  // 2) Search function (maps _id → id)
+  const doSearch = useCallback(async () => {
+    if (!term.trim()) {
+      setResults([]);
+      return;
+    }
+    setSearchStatus("loading");
+    try {
+      const resp = await axios.get<{
+        users: { _id: string; name: string; avatar: string }[];
+      }>(`${apiUrl}/users/search`, {
+        params: { term },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const mapped = resp.data.users.map((u) => ({
+        id: u._id,
+        name: u.name,
+        avatar: u.avatar,
+      }));
+      setResults(mapped);
+      setSearchStatus("idle");
+    } catch {
+      setSearchStatus("failed");
+    }
+  }, [apiUrl, term, token]);
+
+  // 3) Debounce the search so it only fires 300ms after the last keystroke
+  useEffect(() => {
+    if (!isSearching) return;
+    const handle = setTimeout(doSearch, 300);
+    return () => clearTimeout(handle);
+  }, [term, isSearching, doSearch]);
+
+  // 4) Add a contact & prune it from the results immediately
+  const handleAdd = async (id: string) => {
+    await dispatch(addContact({ userId: id, token }));
+    setResults((r) => r.filter((c) => c.id !== id));
+  };
+
+  function onSelectContact(id: string, name: string) {
+    dispatch(openChat({ partnerId: id, partnerName: name }));
+    dispatch(fetchHistory(id));
+  }
 
   return (
     <div className="flex flex-col h-full">
-
+      {/* header */}
       <div className="flex items-center justify-between p-4">
-        <h2 className="text-xl font-bold">Contacts</h2>
-        <button className="text-sm font-medium text-[var(--color-primary)]">
-          New Contact
+        <h2 className="text-xl font-bold">
+          {isSearching ? "New Chat" : "Contacts"}
+        </h2>
+        <button
+          className="text-sm font-medium text-[var(--color-primary)]"
+          onClick={() => {
+            setIsSearching(!isSearching);
+            setTerm("");
+            setResults([]);
+          }}
+        >
+          {isSearching ? "Back" : "New Chat"}
         </button>
       </div>
 
-      {/* Search */}
+      {/* search bar */}
       <div className="px-4 py-2 border-b border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search contacts"
-          className="
-            w-full px-3 py-2 rounded-md
-            bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)]
-            border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
-            text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]
-            placeholder:text-[var(--color-text-secondary)] dark:placeholder:text-[var(--color-text-secondary-darkmode)]
-            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] dark:focus:ring-[var(--color-primary-darkmode)]
-          "
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && isSearching && doSearch()}
+            placeholder={isSearching ? "Search new users…" : "Filter contacts"}
+            className="
+        flex-1 px-3 py-2 rounded-md
+        bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)]
+        border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
+        text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]
+        placeholder:text-[var(--color-text-secondary)] dark:placeholder:text-[var(--color-text-secondary-darkmode)]
+        focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] dark:focus:ring-[var(--color-primary-darkmode)]
+      "
+          />
+          {isSearching && (
+            <button
+              onClick={doSearch}
+              className="
+          px-4 py-2 rounded-md font-medium
+          bg-[var(--color-primary)] dark:bg-[var(--color-primary-darkmode)]
+          text-white
+          hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-light)]
+        "
+            >
+              <IoSearch />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* List */}
+      {/* list or results */}
       <ul className="flex-1 overflow-y-auto space-y-2 p-4">
-        {filtered.map(c => {
-          const active = c.id === selectedId;
-          return (
-            <li
-              key={c.id}
-              onClick={() => onSelectId(c.id)}
-              className={`
-                flex items-center gap-3 p-2 rounded-md cursor-pointer transition
-                ${active
-                  ? "bg-[var(--color-primary-light)] dark:bg-[var(--color-primary-light-darkmode)]"
-                  : "hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)]"}
-              `}
-            >
-              <span className="text-2xl">{c.avatar}</span>
-              <div className="font-medium text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
-                {c.name}
-              </div>
-            </li>
-          );
-        })}
+        {isSearching ? (
+          // SEARCH MODE
+          searchStatus === "loading" ? (
+            <li>Loading…</li>
+          ) : results.length === 0 ? (
+            <li>No users found.</li>
+          ) : (
+            results.map((u) => (
+              <li
+                key={u.id}
+                className="
+                  flex items-center justify-between gap-3 p-2 rounded-md
+                  hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)]
+                "
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{u.avatar}</span>
+                  <div className="font-medium text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+                    {u.name}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleAdd(u.id)}
+                  className="text-sm font-medium text-[var(--color-primary)]"
+                >
+                  Add
+                </button>
+              </li>
+            ))
+          )
+        ) : (
+          // CONTACTS MODE
+          <>
+            {status === "loading" ? (
+              <li>Loading contacts…</li>
+            ) : contacts.length === 0 ? (
+              <li className="text-center text-[var(--color-text-secondary)]">
+                No contacts
+              </li>
+            ) : (
+              contacts.map((c) => {
+                const active = c._id === selectedId;
+                return (
+                  <li
+                    key={c._id}
+                    onClick={() => onSelectId(c._id)}
+                    className={`
+                      flex items-center gap-3 p-2 rounded-md cursor-pointer transition
+                      ${
+                        active
+                          ? "bg-[var(--color-primary-light)] dark:bg-[var(--color-primary-light-darkmode)]"
+                          : "hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)]"
+                      }
+                    `}
+                  >
+                    <span className="text-2xl">{c.avatar}</span>
+                    <div className="font-medium text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+                      {c.name}
+                    </div>
+                  </li>
+                );
+              })
+            )}
+          </>
+        )}
       </ul>
     </div>
   );

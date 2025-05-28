@@ -9,22 +9,23 @@ interface Props {
   section: "chats" | "contacts" | "groups" | "profile" | "app-settings";
   selectedId: string | null;
   onSelectId: (id: string) => void;
+  onSelectPage: (page: Props["section"]) => void;
 }
 
 const ContentArea: React.FC<Props> = ({
   section,
   selectedId,
   onSelectId,
+  onSelectPage,
 }) => {
   return (
-    <div
-      className="
-        w-80 h-full flex flex-col
-        bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]
-      "
-    >
+    <div className="w-80 h-full flex flex-col bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]">
       {section === "chats" && (
-        <ChatList selectedId={selectedId} onSelectId={onSelectId} />
+        <ChatList
+          selectedId={selectedId}
+          onSelectId={onSelectId}
+          onNewChat={() => onSelectPage("contacts")}
+        />
       )}
       {section === "contacts" && (
         <ContactList selectedId={selectedId} onSelectId={onSelectId} />

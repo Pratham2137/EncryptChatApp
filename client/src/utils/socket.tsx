@@ -1,38 +1,45 @@
-import {io} from 'socket.io-client';
+// client/utils/socket.ts
+import { io, Socket } from "socket.io-client";
 
-const socket = io(import.meta.env.VITE_SOCKET_URL);
+let socket: Socket | null = null;
 
-socket.on("connect", ()=>{
-    console.log("Connected to the server");
-});
+/**
+ * Connects the socket to the server (once) and joins the given userId room.
+ * If already connected, returns the existing socket.
+ */
+export function connectSocket(userId: string): Socket {
+  if (socket && socket.connected) {
+    // already connected: no-op (you could re-emit join here if needed)
+    return socket;
+  }
 
-socket.on("disconnect", ()=>{
-    console.log("Disconnected from server.");
-});
+  // Create a new socket (only WebSocket, with credentials)
+  socket = io(import.meta.env.VITE_SOCKET_URL, {
+    transports: ["websocket"],
+    withCredentials: true,
+    auth: { userId },
+  });
 
-export default socket;
+  // Once, on first successful connect, join the user room
+  socket.once("connect", () => {
+    console.log("✅ Socket connected:", socket!.id);
+    socket!.emit("join", userId);
+  });
 
+  socket.on("disconnect", (reason) => {
+    console.log("⚠️ Socket disconnected:", reason);
+  });
 
+  socket.on("connect_error", (err) => {
+    console.error("❌ Socket connection error:", err.message);
+  });
 
-// import { io } from "socket.io-client";
+  return socket;
+}
 
-// const socket = io(import.meta.env.VITE_SOCKET_URL, {
-//   withCredentials: true,
-//   autoConnect: false, // You should manually connect after auth
-//   transports: ["websocket"], // Use only WebSocket transport for real-time messaging
-//   reconnectionAttempts: 5, // Retry connection 5 times
-// });
-
-// socket.on("connect", () => {
-//   console.log("✅ Connected to WhisprNet server");
-// });
-
-// socket.on("disconnect", () => {
-//   console.log("⚠️ Disconnected from WhisprNet server");
-// });
-
-// socket.on("connect_error", (err) => {
-//   console.error("❌ Connection error:", err.message);
-// });
-
-// export default socket;
+export function getSocket(): Socket {
+  if (!socket) {
+    throw new Error("Socket not connected");
+  }
+  return socket;
+}    

@@ -15,9 +15,10 @@ const demoChats: Chat[] = [
 interface Props {
   selectedId: string | null;
   onSelectId: (id: string) => void;
+  onNewChat: () => void;
 }
 
-const ChatList: React.FC<Props> = ({ selectedId, onSelectId }) => {
+const ChatList: React.FC<Props> = ({ selectedId, onSelectId, onNewChat }) => {
   const [search, setSearch] = useState("");
 
   const filtered = demoChats.filter(
@@ -28,10 +29,14 @@ const ChatList: React.FC<Props> = ({ selectedId, onSelectId }) => {
 
   return (
     <div className="flex flex-col h-full">
-
       <div className="flex items-center justify-between p-4">
         <h2 className="text-xl font-bold">Chats</h2>
-        <button className="text-[var(--color-primary)]">New chat</button>
+        <button
+          onClick={onNewChat}
+          className="text-[var(--color-primary)]"
+        >
+          New chat
+        </button>
       </div>
 
       {/* Search */}
