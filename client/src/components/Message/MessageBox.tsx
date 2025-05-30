@@ -1,5 +1,5 @@
 // src/components/Message/MessageBox.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../features/store";
 import {
@@ -15,7 +15,6 @@ import {
 import { useAuth } from "../../utils/AuthContext";
 import { getSocket } from "../../utils/socket";
 import { receiveMessage, fetchHistory } from "../../features/chat/chatSlice";
-import { nanoid } from "@reduxjs/toolkit";
 
 interface Props {
   section: "chats" | "contacts" | "groups";
@@ -29,39 +28,37 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
   const partnerId = selectedId;
   const { getToken } = useAuth();
   const token = getToken()!;
+  const partner =
+    section === "groups"
+      ? useSelector((s: RootState) =>
+          s.social.groups.list.find((g) => g._id === selectedId)
+        )
+      : useSelector((s: RootState) =>
+          s.social.chats.list.find((c) => c._id === selectedId)
+        );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [text, setText] = useState("");
 
-  // load history when partner changes
+  // ref for the scrollable container
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 1) load history when partner changes
   useEffect(() => {
     if (partnerId) {
       dispatch(fetchHistory({ partnerId, token }));
     }
   }, [partnerId, token, dispatch]);
 
-  // real‐time listener
+  // 3) jump scroll to bottom on history change
   useEffect(() => {
-    if (!partnerId) return;
-    const socket = getSocket();
-    const handler = (payload: any) => {
-      if (payload.sender === partnerId) {
-        dispatch(
-          receiveMessage({
-            id: nanoid(),
-            sender: payload.sender,
-            text: payload.ciphertext,
-            createdAt: payload.createdAt ?? new Date().toISOString(),
-          })
-        );
-      }
-    };
-    socket.on("receive-message", handler);
-    return () => {
-      socket.off("receive-message", handler);
-    };
-  }, [partnerId, dispatch]);
+    const container = scrollRef.current;
+    if (container) {
+      // Immediately jump to the bottom
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [history]);
 
   const send = async () => {
     if (!partnerId || !text.trim()) return;
@@ -76,7 +73,7 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
     });
 
     // optimistic UI
-    dispatch(receiveMessage({ sender: me._id, text, createdAt }));
+    // dispatch(receiveMessage({ sender: me._id, text, createdAt }));
     setText("");
 
     // persist
@@ -98,49 +95,154 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
     );
   }
 
-  // now every message has .text, so this is safe:
-  const messages = history.filter((m) =>
-    (m.text ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const messages = history
+    .filter((m) =>
+      (m.text ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
 
   return (
     <div className="flex flex-col h-full">
       {/* Top Bar */}
-      <div className="flex items-center justify-between p-4 border-b">
-        {/* …controls… */}
+      <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
+        {/* Avatar + Name */}
+        <div className="flex items-center gap-3">
+          {/* <span className="text-2xl">Avatar</span>
+          <span className="font-semibold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+            Name
+          </span> */}
+
+          {partner?.avatar ? (
+            <img src={partner.avatar} className="w-8 h-8 rounded-full" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gray-300" />
+          )}
+          <span className="font-semibold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+            {partner?.name}
+          </span>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-3 relative">
+          {/* Search */}
+          <div className="relative">
+            <FiSearch className="absolute top-1/2 left-2 -translate-y-1/2 text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)]" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search…"
+              className="
+                w-32 pl-8 pr-2 py-1 rounded-md
+                bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)]
+                border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
+                text-sm text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]
+                placeholder:text-[var(--color-text-secondary)] dark:placeholder:text-[var(--color-text-secondary-darkmode)]
+                focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] dark:focus:ring-[var(--color-primary-darkmode)]
+              "
+            />
+          </div>
+
+          <button className="p-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)] hover:text-[var(--color-primary)]">
+            <FiPhone size={18} />
+          </button>
+          <button className="p-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)] hover:text-[var(--color-primary)]">
+            <FiVideo size={18} />
+          </button>
+          <button className="p-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)] hover:text-[var(--color-primary)]">
+            <FiInfo size={18} />
+          </button>
+
+          {/* three-dots menu */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="p-1 text-[var(--color-text)] dark:text-[var(--color-text-darkmode)] hover:text-[var(--color-primary)]"
+            >
+              <FiMoreVertical size={18} />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 mt-2 w-36 bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]
+                            border border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
+                            rounded-md shadow-lg z-50"
+              >
+                <ul className="flex flex-col">
+                  <li className="px-4 py-2 hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)] cursor-pointer">
+                    Archive
+                  </li>
+                  <li className="px-4 py-2 hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)] cursor-pointer">
+                    Mute
+                  </li>
+                  <li className="px-4 py-2 hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)] cursor-pointer text-[var(--color-error)]">
+                    Delete
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Message Scroll */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4 bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)] space-y-4"
+      >
         {messages.map((m, i) => (
           <div
-            key={m.id ?? i} // ← unique DB id, or index as a last‐resort
+            key={m.createdAt + i}
             className={`
-      max-w-xs p-3 rounded-lg
-      ${m.sender === me._id ? "ml-auto bg-indigo-100" : "mr-auto bg-white"}
-    `}
+              max-w-xs p-3 rounded-lg
+              ${
+                m.sender === me._id
+                  ? "ml-auto bg-[var(--color-primary-light)] dark:bg-[var(--color-primary-light-darkmode)]"
+                  : "mr-auto bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]"
+              }
+            `}
           >
-            <div className="text-sm text-gray-800">{m.text}</div>
-            <div className="mt-1 text-xs text-gray-500 text-right">
-              {new Date(m.createdAt).toLocaleTimeString()}
+            <div className="text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+              {m.text}
+            </div>
+            <div className="mt-1 text-xs text-[var(--color-text-secondary)] dark:text-[var(--color-text-secondary-darkmode)] text-right">
+              {new Date(m.createdAt)
+                .toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })
+                .toLowerCase()}
             </div>
           </div>
         ))}
       </div>
 
       {/* Input */}
-      <div className="flex items-center gap-3 p-4 border-t">
-        <FiSmile className="cursor-pointer" />
-        <FiPaperclip className="cursor-pointer" />
+      <div className="flex items-center gap-3 p-4 border-t border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
+        <button className="p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">
+          <FiSmile size={20} />
+        </button>
+        <button className="p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">
+          <FiPaperclip size={20} />
+        </button>
         <input
-          className="flex-1 px-3 py-2 rounded-full border"
+          type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type a message…"
+          className="flex-1 px-3 py-2 rounded-full border bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]
+            border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]
+            text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]
+            placeholder:text-[var(--color-text-secondary)] dark:placeholder:text-[var(--color-text-secondary-darkmode)]
+            focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] dark:focus:ring-[var(--color-primary-darkmode)]"
         />
         <button
           onClick={send}
-          className="p-2 bg-indigo-600 text-white rounded-full"
+          className="p-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] 
+            text-white rounded-full transition"
         >
           <FiSend size={18} />
         </button>

@@ -12,7 +12,6 @@ export interface UserProfile {
   email: string;
   isOnline: boolean;
   socketId: string;
-  // …etc
 }
 
 interface UserProfileState {
@@ -36,10 +35,7 @@ export const fetchUserProfile = createAsyncThunk<
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // 1) connect socket
-      // connectSocket(res.data.user._id);
-
-      // 2) immediately load contacts into your contact slice
+      // immediately load contacts into your contact slice
       dispatch(fetchContacts(token));
 
       return res.data.user;
@@ -72,7 +68,7 @@ export const userProfileSlice = createSlice({
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.data = action.payload;
-        connectSocket(action.payload._id);
+        connectSocket(action.payload._id, action.payload.name);
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.status = "failed";

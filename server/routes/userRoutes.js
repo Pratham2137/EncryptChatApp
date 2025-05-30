@@ -1,5 +1,5 @@
 import express from "express";
-import { addContact, fetchUserProfile, findUser, getAllUsers, getContacts, removeContact, searchUsers} from "../controllers/userController.js";
+import { addContact, fetchUserProfile, findUser, getAllUsers, getChats, getContacts, getGroups, removeContact, searchUsers} from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authTokenMiddleware.js";
 
 const router = express.Router();
@@ -24,5 +24,11 @@ router.post("/contacts/:id", authenticateToken, addContact);
 
 //remove friend
 router.delete("/contacts/:id", authenticateToken, removeContact);
+
+// GET /api/users/chats
+router.get("/chats", authenticateToken, getChats);
+
+// GET /api/users/groups
+router.get("/groups", authenticateToken, getGroups);
 
 export default router;

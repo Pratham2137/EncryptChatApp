@@ -9,17 +9,17 @@ export const initSocket = (server) => {
     cors: {
       origin: "http://localhost:5173",
       methods: ["GET", "POST"],
-      credentials: true     // ← must allow credentials for withCredentials
+      credentials: true, // ← must allow credentials for withCredentials
     },
-    transports: ["websocket"] // optional: only websocket
+    transports: ["websocket"], // optional: only websocket
   });
 
   io.on("connection", (socket) => {
     console.log("New user connected:", socket.id);
 
-    socket.on("join", async (userId) => {
+    socket.on("join", async (userId, username) => {
       socket.join(userId);
-      console.log(`🔗 User ${userId} joined room ${userId}`);
+      console.log(`🔗 User ${username} joined room ${username}`);
 
       await User.findByIdAndUpdate(userId, {
         socketId: socket.id,
@@ -30,9 +30,18 @@ export const initSocket = (server) => {
       io.emit("online-users", onlineUsers);
     });
 
-    socket.on("send-message", ({ sender, receiver, ciphertext }) => {
-      console.log(`📨 Message from ${sender} to ${receiver}`);
-      io.to(receiver).emit("receive-message", { sender, ciphertext });
+    socket.on("send-message", ({ sender, receiver, ciphertext, createdAt }) => {
+      // emit exactly the same shape { sender, ciphertext, createdAt }
+      io.to(receiver).emit("receive-message", {
+        sender,
+        ciphertext,
+        createdAt,
+      });
+      socket.emit("receive-message", {
+        sender,
+        ciphertext,
+        createdAt,
+      });
     });
 
     socket.on("disconnect", async (reason) => {
@@ -51,4 +60,3 @@ export const getIO = () => {
   if (!io) throw new Error("Socket.io not initialized");
   return io;
 };
-    

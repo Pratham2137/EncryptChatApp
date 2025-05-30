@@ -12,12 +12,18 @@ export default function SocketListener() {
     if (!me) return;
     const socket = getSocket();
 
-    socket.on("receive-message", (msg:{ sender:string; text:string }) => {
-      dispatch(receiveMessage({
-        sender: msg.sender,
-        text:     msg.text,
-        createdAt: new Date().toISOString(),
-      }));
+    socket.on("receive-message", (msg: {
+        sender: string;
+        ciphertext: string;
+        createdAt: string;
+      }) => {
+      dispatch(
+        receiveMessage({
+          sender:    msg.sender,
+          text:      msg.ciphertext,
+          createdAt: msg.createdAt,
+        })
+      );
     });
 
     return () => {

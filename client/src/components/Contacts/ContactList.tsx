@@ -19,8 +19,8 @@ interface Props {
 const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
   const apiUrl = import.meta.env.VITE_API_URL;
   const dispatch = useDispatch<AppDispatch>();
-  const { contacts, status } = useSelector(
-    (state: RootState) => state.contacts
+  const { list: contacts, status } = useSelector(
+    (state: RootState) => state.social.contacts
   );
   const { getToken } = useAuth();
   const token = getToken();
@@ -77,10 +77,9 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
     setResults((r) => r.filter((c) => c.id !== id));
   };
 
-  function onSelectContact(id: string, name: string) {
-    dispatch(openChat({ partnerId: id, partnerName: name }));
-    dispatch(fetchHistory(id));
-  }
+  const filteredContacts = contacts.filter(c =>
+    c.name.toLowerCase().includes(term.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -153,7 +152,11 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
                 "
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{u.avatar}</span>
+                  <img
+                      src={u.avatar}
+                      alt={u.avatar}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
                   <div className="font-medium text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
                     {u.name}
                   </div>
@@ -172,12 +175,12 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
           <>
             {status === "loading" ? (
               <li>Loading contacts…</li>
-            ) : contacts.length === 0 ? (
+            ) : filteredContacts.length === 0 ? (
               <li className="text-center text-[var(--color-text-secondary)]">
                 No contacts
               </li>
             ) : (
-              contacts.map((c) => {
+              filteredContacts.map((c) => {
                 const active = c._id === selectedId;
                 return (
                   <li
@@ -192,7 +195,11 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
                       }
                     `}
                   >
-                    <span className="text-2xl">{c.avatar}</span>
+                    <img
+                      src={c.avatar}
+                      alt={c.avatar}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
                     <div className="font-medium text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
                       {c.name}
                     </div>

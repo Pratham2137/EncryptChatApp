@@ -1,15 +1,12 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "../../features/store";
 
 export interface Group {
   id: string;
   name: string;
   avatar: string;
 }
-
-const demoGroups: Group[] = [
-  { id: "g1", name: "Project Team", avatar: "👥" },
-  { id: "g2", name: "Friends",      avatar: "🎉" },
-];
 
 interface Props {
   selectedId: string | null;
@@ -18,14 +15,16 @@ interface Props {
 
 const GroupList: React.FC<Props> = ({ selectedId, onSelectId }) => {
   const [search, setSearch] = useState("");
+  const { list: groups, status } = useSelector(
+    (s: RootState) => s.social.groups
+  );
 
-  const filtered = demoGroups.filter(g =>
+  const filtered = groups.filter((g) =>
     g.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="flex flex-col h-full">
-
       <div className="flex items-center justify-between p-4">
         <h2 className="text-xl font-bold">Groups</h2>
         <button className="text-sm font-medium text-[var(--color-primary)]">
@@ -33,13 +32,12 @@ const GroupList: React.FC<Props> = ({ selectedId, onSelectId }) => {
         </button>
       </div>
 
-
       {/* Search */}
       <div className="px-4 py-2 border-b border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
         <input
           type="text"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search groups"
           className="
             w-full px-3 py-2 rounded-md
@@ -54,7 +52,7 @@ const GroupList: React.FC<Props> = ({ selectedId, onSelectId }) => {
 
       {/* List */}
       <ul className="flex-1 overflow-y-auto space-y-2 p-4">
-        {filtered.map(g => {
+        {filtered.map((g) => {
           const active = g.id === selectedId;
           return (
             <li
@@ -62,9 +60,11 @@ const GroupList: React.FC<Props> = ({ selectedId, onSelectId }) => {
               onClick={() => onSelectId(g.id)}
               className={`
                 flex items-center gap-3 p-2 rounded-md cursor-pointer transition
-                ${active
-                  ? "bg-[var(--color-primary-light)] dark:bg-[var(--color-primary-light-darkmode)]"
-                  : "hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)]"}
+                ${
+                  active
+                    ? "bg-[var(--color-primary-light)] dark:bg-[var(--color-primary-light-darkmode)]"
+                    : "hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-border-darkmode)]"
+                }
               `}
             >
               <span className="text-2xl">{g.avatar}</span>

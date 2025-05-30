@@ -7,7 +7,7 @@ let socket: Socket | null = null;
  * Connects the socket to the server (once) and joins the given userId room.
  * If already connected, returns the existing socket.
  */
-export function connectSocket(userId: string): Socket {
+export function connectSocket(userId: string, username: string): Socket {
   if (socket && socket.connected) {
     // already connected: no-op (you could re-emit join here if needed)
     return socket;
@@ -23,7 +23,7 @@ export function connectSocket(userId: string): Socket {
   // Once, on first successful connect, join the user room
   socket.once("connect", () => {
     console.log("✅ Socket connected:", socket!.id);
-    socket!.emit("join", userId);
+    socket!.emit("join", userId, username);
   });
 
   socket.on("disconnect", (reason) => {

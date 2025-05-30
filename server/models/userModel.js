@@ -28,10 +28,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
     },
-    // avatar: {
-    //   type: String, // Store URL or base64 string
-    //   default: "",
-    // },
+    avatar: {
+      type: String, // Store URL or base64 string
+      default: "https://avatar.iran.liara.run/public",
+    },
     // publicKey: {
     //   type: String, // Client's ECDH/ECC public key
     //   required: true,
@@ -40,7 +40,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
+    contacts: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    chats: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    groups: [{ type: mongoose.Schema.Types.ObjectId, ref: "Group" }],
     isOnline: {
       type: Boolean,
       default: false,

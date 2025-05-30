@@ -6,11 +6,24 @@ import ContentArea from "../components/ContextSidebar/ContentArea";
 import MessageBox from "../components/Message/MessageBox";
 import { useAuth } from "../utils/AuthContext";
 import { fetchUserProfile } from "../features/userProfile/userProfileSlice";
+import {  fetchContacts, fetchMyChats, fetchMyGroups } from "../features/social/socialSlice";
 
 const Layout: React.FC = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const { isAuthenticated, getToken } = useAuth();
+  const token = getToken();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (token) {
+        dispatch(fetchUserProfile(token));
+        dispatch(fetchContacts(token));
+        dispatch(fetchMyChats(token));
+        dispatch(fetchMyGroups(token));
+      }
+    }
+  }, [isAuthenticated, dispatch, token]);
 
   if (["/login", "/register", "/logout"].includes(location.pathname)) {
     return (
@@ -19,13 +32,6 @@ const Layout: React.FC = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const token = getToken();
-      if (token) dispatch(fetchUserProfile(token));
-    }
-  }, [isAuthenticated, dispatch, getToken]);
 
   const [selectedPage, setSelectedPage] = useState<
     "chats" | "contacts" | "groups" | "profile" | "app-settings"
@@ -43,10 +49,7 @@ const Layout: React.FC = () => {
     <div className="h-screen flex bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)]">
       {/* Sidebar */}
       <div className="flex-shrink-0 h-full">
-        <Sidebar
-          onSelectPage={handleSelectPage}
-          selectedPage={selectedPage}
-        />
+        <Sidebar onSelectPage={handleSelectPage} selectedPage={selectedPage} />
       </div>
 
       {/* Context sidebar */}
