@@ -4,6 +4,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "../../utils/ThemeContext";
 import { useAuth } from "../../utils/AuthContext";
+import { ensureKeyPair } from "../../utils/crypto";
 
 const Login = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -26,6 +27,7 @@ const Login = () => {
     };
     try {
       await login(loginData);
+      ensureKeyPair();
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
     }

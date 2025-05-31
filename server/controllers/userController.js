@@ -2,6 +2,12 @@ import User from "../models/userModel.js";
 import Group from "../models/groupModel.js";
 import Chat from "../models/chatModel.js";
 
+export const createPublicKey = async (req, res) => {
+  const { publicKey } = req.body;                 // base64
+  await User.findByIdAndUpdate(req.user.id, { publicKey });
+  res.sendStatus(204);
+}
+
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({});
@@ -94,7 +100,7 @@ export const searchUsers = async (req, res) => {
       },
     };
 
-    const users = await User.find(filter).select("_id name email username avatar desc");
+    const users = await User.find(filter).select("_id name email username avatar desc publicKey");
 
     res.json({ users });
   } catch (err) {
@@ -107,7 +113,7 @@ export const getContacts = async (req, res) => {
   try {
     const me = await User.findById(req.user.userId).populate(
       "contacts",
-      "_id name username email avatar desc"
+      "_id name username email avatar desc publicKey"
     );
 
     if (!me) return res.status(404).json({ message: "User not found" });

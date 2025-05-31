@@ -1,8 +1,11 @@
 import express from "express";
-import { addContact, fetchUserProfile, findUser, getAllUsers, getChats, getContacts, getGroups, removeContact, searchUsers} from "../controllers/userController.js";
+import { addContact, createPublicKey, fetchUserProfile, findUser, getAllUsers, getChats, getContacts, getGroups, removeContact, searchUsers} from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authTokenMiddleware.js";
 
 const router = express.Router();
+
+// routes/users.js
+router.post('/public-key', authenticateToken, createPublicKey);
 
 //get all users
 router.get("/getAllUsers", authenticateToken ,getAllUsers);

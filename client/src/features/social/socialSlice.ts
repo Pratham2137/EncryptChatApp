@@ -78,11 +78,24 @@ export const fetchMyChats = createAsyncThunk<
   { rejectValue: string }
 >("social/fetchMyChats", async (token, { rejectWithValue }) => {
   try {
-    const res = await axios.get<{ chats: ChatPartner[] }>(
-      `${apiUrl}/users/chats`,
+    const res = await axios.get<{ 
+      chats: Array<{
+        chatId: string;
+        partnerName: string;
+        partnerAvatar: string;
+        lastMessage?: string;
+      }>;
+     }>(
+      `${apiUrl}/chats/my`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    return res.data.chats;
+    // map into our ChatPartner interface
+    return res.data.chats.map((c) => ({
+      _id: c.chatId,
+      name: c.partnerName,
+      avatar: c.partnerAvatar,
+      desc: c.lastMessage,        // or omit if you don't want a subtitle
+    }));
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.error ?? err.message);
   }

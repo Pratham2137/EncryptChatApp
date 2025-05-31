@@ -1,27 +1,34 @@
+import Chat from "../models/chatModel.js";
 import { Message } from "../models/messageModel.js";
 import User from "../models/userModel.js";
 
-export const sendMessage = async (req, res) => {
+export const postMessageToChat = async (req, res) => {
   const sender = req.user.userId;
-  const { receiver, ciphertext } = req.body;
+  const { chatId } = req.params;
+  const { iv, ciphertext } = req.body;
 
-  if (!receiver || !ciphertext) {
-    return res
-      .status(400)
-      .json({ error: "Receiver and ciphertext are required" });
+  if (!iv || !ciphertext) {
+    return res.status(400).json({ error: "iv and ciphertext are required" });
   }
 
   try {
-    // 1) persist message
-    const message = await Message.create({ sender, receiver, ciphertext });
-
-    // 2) ensure both users list each other in chats[]
-    await User.findByIdAndUpdate(sender, {
-      $addToSet: { chats: receiver },
+    // 1) verify chat exists and user is participant
+    const chat = await Chat.findById(chatId);
+    if (!chat || !chat.participants.some((p) => p.toString() === sender)) {
+      return res
+        .status(403)
+        .json({ error: "Invalid chatId or not a participant" });
+    }
+    // 2) persist encrypted message
+    const message = await Message.create({
+      chat: chatId,
+      sender,
+      iv,
+      ciphertext,
     });
-    await User.findByIdAndUpdate(receiver, {
-      $addToSet: { chats: sender },
-    });
+    // 3) update lastMessage pointer (optional)
+    chat.lastMessage = message._id;
+    await chat.save();
 
     res.status(201).json(message);
   } catch (err) {
@@ -30,18 +37,20 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-export const getMessages = async (req, res) => {
+export const getMessagesByChat = async (req, res) => {
   const userId = req.user.userId;
-  const receiverId = req.params.receiverId;
-  const receiver = await User.findById(receiverId);
+  const { chatId } = req.params;
+
+  // verify chat and membership
+  const chat = await Chat.findById(chatId);
+  if (!chat || !chat.participants.some((p) => p.toString() === userId)) {
+    return res
+      .status(403)
+      .json({ error: "Invalid chatId or not a participant" });
+  }
 
   try {
-    const messages = await Message.find({
-      $or: [
-        { sender: userId, receiver: receiverId },
-        { sender: receiverId, receiver: userId },
-      ],
-    }).sort({ createdAt: 1 }); // Oldest to newest
+    const messages = await Message.find({ chat: chatId }).sort("createdAt");
 
     res.status(200).json(messages);
   } catch (error) {
@@ -49,22 +58,20 @@ export const getMessages = async (req, res) => {
   }
 };
 
-export const deleteMessages = async (req, res) => {
+export const deleteChatMessages = async (req, res) => {
   const userId = req.user.userId;
-  const receiverId = req.params.receiverId;
+  const { chatId } = req.params;
 
-  if (!receiverId) {
-    return res.status(400).json({ error: "receiverId param is required" });
+  // verify chat and membership as above
+  const chat = await Chat.findById(chatId);
+  if (!chat || !chat.participants.some((p) => p.toString() === userId)) {
+    return res
+      .status(403)
+      .json({ error: "Invalid chatId or not a participant" });
   }
 
   try {
-    // remove any message where (sender=user & receiver=partner) OR (sender=partner & receiver=user)
-    const result = await Message.deleteMany({
-      $or: [
-        { sender: userId, receiver: receiverId },
-        { sender: receiverId, receiver: userId },
-      ],
-    });
+    const result = await Message.deleteMany({ chat: chatId });
 
     return res.status(200).json({
       deletedCount: result.deletedCount,

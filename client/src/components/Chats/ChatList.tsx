@@ -12,7 +12,11 @@ interface Props {
 }
 
 export default function ChatList({ selectedId, onSelectId, onNewChat }: Props) {
-  const { list: chats, status } = useSelector((s: RootState) => s.social.chats);
+  // Grab the array of chats and its status directly
+  const chats = useSelector((s: RootState) => s.social?.chats?.list ?? []);
+  const status = useSelector(
+    (s: RootState) => s.social?.chats?.status ?? "idle"
+  );
   const [search, setSearch] = useState("");
 
   // memoize filtered list

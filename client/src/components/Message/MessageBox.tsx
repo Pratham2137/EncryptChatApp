@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../../utils/AuthContext";
 import { getSocket } from "../../utils/socket";
 import { receiveMessage, fetchHistory } from "../../features/chat/chatSlice";
+import { encryptMessage } from "../../utils/crypto";
 
 interface Props {
   section: "chats" | "contacts" | "groups";
@@ -25,18 +26,21 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
   const dispatch = useDispatch();
   const me = useSelector((s: RootState) => s.userProfile.data)!;
   const history = useSelector((s: RootState) => s.chat.history);
-  const partnerId = selectedId;
+  const chatId = selectedId;
+  // get a safe array of chats
+  const chats = useSelector((s: RootState) => s.social?.chats?.list ?? []);
+  // now find your chat
+  const partnerPubKey = chats.find((c) => c.chatId === chatId)?.partnerPubKey;
   const { getToken } = useAuth();
   const token = getToken()!;
-  const partner =
-    section === "groups"
-      ? useSelector((s: RootState) =>
-          s.social.groups.list.find((g) => g._id === selectedId)
-        )
-      : useSelector((s: RootState) =>
-          s.social.chats.list.find((c) => c._id === selectedId)
-        );
-
+   const partners = useSelector(
+    (s: RootState) => section === "groups"
+      ? s.social?.groups?.list ?? []
+      : chats
+  );
+  const partner = partners.find((p) =>
+    section === "groups" ? p._id === selectedId : p.chatId === chatId
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [text, setText] = useState("");
@@ -46,10 +50,10 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
 
   // 1) load history when partner changes
   useEffect(() => {
-    if (partnerId) {
-      dispatch(fetchHistory({ partnerId, token }));
+    if (chatId && partnerPubKey) {
+      dispatch(fetchHistory({ chatId, token }));
     }
-  }, [partnerId, token, dispatch]);
+  }, [chatId, token, partnerPubKey]);
 
   // 3) jump scroll to bottom on history change
   useEffect(() => {
@@ -61,33 +65,40 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
   }, [history]);
 
   const send = async () => {
-    if (!partnerId || !text.trim()) return;
-    const createdAt = new Date().toISOString();
+    if (!chatId || !text.trim()) return;
 
-    // emit
-    getSocket().emit("send-message", {
-      sender: me._id,
-      receiver: partnerId,
-      ciphertext: text,
-      createdAt,
-    });
+    // 1) encrypt
+    const { iv, ciphertext } = await encryptMessage(sharedKey, text, chatId);
 
-    // optimistic UI
-    // dispatch(receiveMessage({ sender: me._id, text, createdAt }));
+    // 2) emit over socket
+    getSocket().emit("send-message", { chatId: chatId, iv, ciphertext });
+
+    // 3) optimistic UI: decrypt instantly back to plaintext
+    dispatch(
+      receiveMessage({
+        id: undefined,
+        sender: me._id,
+        text,
+        createdAt: new Date().toISOString(),
+      })
+    );
     setText("");
 
-    // persist
-    await fetch(`${import.meta.env.VITE_API_URL}/message/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ receiver: partnerId, ciphertext: text }),
-    });
+    // 4) persist via REST
+    await fetch(
+      `${import.meta.env.VITE_API_URL}/message/chats/${chatId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ iv, ciphertext }),
+      }
+    );
   };
 
-  if (!partnerId) {
+  if (!chatId) {
     return (
       <div className="h-full flex items-center justify-center text-gray-500">
         Select a {section.slice(0, -1)} to view messages
@@ -108,7 +119,7 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
     <div className="flex flex-col h-full">
       {/* Top Bar */}
       <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
-        {/* Avatar + Name */}
+        {/* Avatar  Name */}
         <div className="flex items-center gap-3">
           {/* <span className="text-2xl">Avatar</span>
           <span className="font-semibold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
@@ -194,8 +205,8 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
       >
         {messages.map((m, i) => (
           <div
-            key={m.createdAt + i}
-            className={`
+            key={`${m.createdAt}-${i}`}
+            className={` 
               max-w-xs p-3 rounded-lg
               ${
                 m.sender === me._id

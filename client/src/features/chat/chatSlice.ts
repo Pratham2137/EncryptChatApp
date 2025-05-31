@@ -27,9 +27,9 @@ const initialState: ChatState = {
 
 export const fetchHistory = createAsyncThunk<
   ChatMessage[],
-  { partnerId: string; token: string },
+  { chatId: string; token: string },
   { rejectValue: string }
->("chat/fetchHistory", async ({ partnerId, token }, { rejectWithValue }) => {
+>("chat/fetchHistory", async ({ chatId, token }, { rejectWithValue }) => {
   try {
     const res = await axios.get<
       {
@@ -38,16 +38,20 @@ export const fetchHistory = createAsyncThunk<
         ciphertext: string;
         createdAt: string;
       }[]
-    >(`${import.meta.env.VITE_API_URL}/message/${partnerId}`, {
+    >(`${import.meta.env.VITE_API_URL}/message/${chatId}/messages`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    // map ciphertext → text
-    return res.data.map((msg) => ({
-      id: msg._id,
-      sender: msg.sender,
-      text: msg.ciphertext,
-      createdAt: msg.createdAt,
-    }));
+    // decryptMessage(...) per item before returning...
+    const myKey = await deriveChatKey(chatId, /* … */);
+    const decrypted = await Promise.all(
+      res.data.map(async (msg) => ({
+        id: msg._id,
+        sender: msg.sender,
+        text: await decryptMessage(myKey, msg.iv, msg.ciphertext, partnerId),
+        createdAt: msg.createdAt,
+      }))
+    );
+    return decrypted;
   } catch (err: any) {
     return rejectWithValue(
       err.response?.data?.error ?? err.response?.data?.message ?? err.message
@@ -61,7 +65,7 @@ export const chatSlice = createSlice({
   reducers: {
     receiveMessage(state, action: PayloadAction<ChatMessage>) {
       const incoming = action.payload;
-      // if we already have a message with same sender+timestamp, skip
+      // if we already have a message with same sendertimestamp, skip
       if (
         state.history.some(
           (m) =>

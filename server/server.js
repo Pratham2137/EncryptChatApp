@@ -10,6 +10,7 @@ import { connectDB } from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js"
 import messageRoutes from "./routes/messageRoutes.js";
 import authRoutes from "./routes/authenticationRoutes.js"
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -46,6 +47,9 @@ app.use("/api/users",userRoutes);
 
 //Message Routes
 app.use("/api/message",messageRoutes)
+
+//Message Routes
+app.use("/api/chats",chatRoutes)
 
 //Test Route
 app.use("/test",(res,req)=>{

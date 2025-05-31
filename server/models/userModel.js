@@ -32,10 +32,7 @@ const userSchema = new mongoose.Schema(
       type: String, // Store URL or base64 string
       default: "https://avatar.iran.liara.run/public",
     },
-    // publicKey: {
-    //   type: String, // Client's ECDH/ECC public key
-    //   required: true,
-    // },
+    publicKey: { type: String },
     socketId: {
       type: String,
       default: null,
