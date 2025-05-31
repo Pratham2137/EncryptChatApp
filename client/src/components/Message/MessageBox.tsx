@@ -116,7 +116,7 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
           </span> */}
 
           {partner?.avatar ? (
-            <img src={partner.avatar} className="w-8 h-8 rounded-full" />
+            <img src={partner.avatar + `/boy?username=${partner?.name}`} className="w-8 h-8 rounded-full" />
           ) : (
             <div className="w-8 h-8 rounded-full bg-gray-300" />
           )}

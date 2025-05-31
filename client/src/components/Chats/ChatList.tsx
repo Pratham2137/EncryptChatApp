@@ -88,7 +88,7 @@ export default function ChatList({ selectedId, onSelectId, onNewChat }: Props) {
                 `}
               >
                 <img
-                  src={c.avatar}
+                  src={c.avatar + `/boy?username=${c.name}`}
                   alt={c.name}
                   className="w-8 h-8 rounded-full object-cover"
                 />

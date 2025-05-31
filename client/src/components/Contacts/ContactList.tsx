@@ -153,7 +153,7 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                      src={u.avatar}
+                      src={u.avatar + `/boy?username=${u.name}`}
                       alt={u.avatar}
                       className="w-8 h-8 rounded-full object-cover"
                     />
@@ -196,7 +196,7 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
                     `}
                   >
                     <img
-                      src={c.avatar}
+                      src={c.avatar + `/boy?username=${c.name}`}
                       alt={c.avatar}
                       className="w-8 h-8 rounded-full object-cover"
                     />
