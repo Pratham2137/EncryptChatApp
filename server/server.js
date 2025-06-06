@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 
 //Middlewares
 app.use(cors({
-  origin: ["http://localhost:5173"],
+  origin: process.env.FRONT_END_URL?.split(",") || [],
   credentials: true,
 }))
 app.use(express.static("public"));
@@ -48,9 +48,9 @@ app.use("/api/users",userRoutes);
 app.use("/api/message",messageRoutes)
 
 //Test Route
-app.use("/test",(res,req)=>{
-  res.send("hello Test");
-});
+// app.use("/test",(res,req)=>{
+//   res.send("hello Test");
+// });
 
 
 //Start Server

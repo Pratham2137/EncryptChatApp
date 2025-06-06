@@ -3,17 +3,23 @@ import User from "../models/userModel.js";
 
 export const sendMessage = async (req, res) => {
   const sender = req.user.userId;
-  const { receiver, ciphertext } = req.body;
+  const { receiver, iv, ciphertext, createdAt } = req.body;
 
-  if (!receiver || !ciphertext) {
+  if (!receiver || !iv || !ciphertext) {
     return res
       .status(400)
-      .json({ error: "Receiver and ciphertext are required" });
+      .json({ error: "Receiver, IV, and ciphertext are required" });
   }
 
   try {
     // 1) persist message
-    const message = await Message.create({ sender, receiver, ciphertext });
+    const message = await Message.create({
+      sender,
+      receiver,
+      ciphertext, // assumed to be Base64
+      iv, // assumed to be Base64
+      createdAt, // from client’s timestamp
+    });
 
     // 2) ensure both users list each other in chats[]
     await User.findByIdAndUpdate(sender, {
@@ -23,6 +29,7 @@ export const sendMessage = async (req, res) => {
       $addToSet: { chats: sender },
     });
 
+    // console.log("Message sent:", message);
     res.status(201).json(message);
   } catch (err) {
     console.error(err);
@@ -33,7 +40,6 @@ export const sendMessage = async (req, res) => {
 export const getMessages = async (req, res) => {
   const userId = req.user.userId;
   const receiverId = req.params.receiverId;
-  const receiver = await User.findById(receiverId);
 
   try {
     const messages = await Message.find({
@@ -41,11 +47,16 @@ export const getMessages = async (req, res) => {
         { sender: userId, receiver: receiverId },
         { sender: receiverId, receiver: userId },
       ],
-    }).sort({ createdAt: 1 }); // Oldest to newest
+    })
+      .select("_id sender ciphertext iv createdAt")
+      .sort({ createdAt: 1 });
 
-    res.status(200).json(messages);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to retrieve messages" });
+    // Now each `msg` has { _id, sender, ciphertext, iv, createdAt }
+    // console.log("Fetched messages:", messages);
+    return res.status(200).json(messages);
+  } catch (err) {
+    console.error("Failed to fetch messages", err);
+    return res.status(500).json({ message: "Failed to retrieve messages" });
   }
 };
 

@@ -15,16 +15,18 @@ import {
 import { useAuth } from "../../utils/AuthContext";
 import { getSocket } from "../../utils/socket";
 import { receiveMessage, fetchHistory } from "../../features/chat/chatSlice";
+import { encryptAESGCM, decryptAESGCM } from "../../utils/crypto";
 
 interface Props {
   section: "chats" | "contacts" | "groups";
   selectedId: string | null;
+  sharedAESKey: CryptoKey | null;
 }
 
-const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
+const MessageBox: React.FC<Props> = ({ section, selectedId, sharedAESKey }) => {
   const dispatch = useDispatch();
   const me = useSelector((s: RootState) => s.userProfile.data)!;
-  const history = useSelector((s: RootState) => s.chat.history);
+  const rawHistory = useSelector((s: RootState) => s.chat.history);
   const partnerId = selectedId;
   const { getToken } = useAuth();
   const token = getToken()!;
@@ -40,50 +42,160 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [text, setText] = useState("");
+  // This will hold the fully decrypted messages (or fallback to ciphertext)
+  const [decryptedHistory, setDecryptedHistory] = useState<
+    Array<{
+      id: string;
+      sender: string;
+      text: string;
+      createdAt: string;
+      iv: string;
+      ciphertext: string;
+    }>
+  >([]);
 
-  // ref for the scrollable container
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // 1) load history when partner changes
   useEffect(() => {
-    if (partnerId) {
+    if (!sharedAESKey) {
+      setDecryptedHistory([]);
+      return;
+    }
+
+    (async () => {
+      const arr = await Promise.all(
+        rawHistory.map(async (msg) => {
+          // (1) If either iv OR ciphertext is missing, just show msg.text (if it exists), or else placeholder:
+          if (!msg.iv || !msg.ciphertext) {
+            return {
+              id: msg.id!,
+              sender: msg.sender,
+              text: (msg as any).text ?? "[corrupted message]",
+              createdAt: msg.createdAt,
+              iv: msg.iv || "",
+              ciphertext: msg.ciphertext || "",
+            };
+          }
+          // console.log("Decrypting message", msg);
+
+          // (2) Otherwise, attempt to decrypt the valid iv/ciphertext pair:
+          try {
+            const plain = await decryptAESGCM(
+              sharedAESKey,
+              msg.iv,
+              msg.ciphertext
+            );
+            return {
+              id: msg.id!,
+              sender: msg.sender,
+              text: plain,
+              createdAt: msg.createdAt,
+              iv: msg.iv,
+              ciphertext: msg.ciphertext,
+            };
+          } catch (decErr) {
+            console.error("Failed to decrypt message", msg, decErr);
+            // Fallback: if the Redux slice already has a `.text` field, use it;
+            // otherwise show a generic “[corrupted message]”
+            if (typeof (msg as any).text === "string") {
+              return {
+                id: msg.id!,
+                sender: msg.sender,
+                text: (msg as any).text,
+                createdAt: msg.createdAt,
+                iv: msg.iv,
+                ciphertext: msg.ciphertext,
+              };
+            }
+            return {
+              id: msg.id!,
+              sender: msg.sender,
+              text: "[corrupted message]",
+              createdAt: msg.createdAt,
+              iv: msg.iv,
+              ciphertext: msg.ciphertext,
+            };
+          }
+        })
+      );
+
+      setDecryptedHistory(arr);
+    })();
+  }, [rawHistory, sharedAESKey]);
+
+  useEffect(() => {
+    if (partnerId && token) {
       dispatch(fetchHistory({ partnerId, token }));
     }
   }, [partnerId, token, dispatch]);
 
-  // 3) jump scroll to bottom on history change
+  const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const container = scrollRef.current;
     if (container) {
-      // Immediately jump to the bottom
       container.scrollTop = container.scrollHeight;
     }
-  }, [history]);
+  }, [decryptedHistory]);
+
+  // ─── Listen for real-time incoming sockets ───
+  useEffect(() => {
+    if (!partnerId || !sharedAESKey) return;
+    const socket = getSocket();
+
+    const handler = (_payload: {
+      _id: string;
+      sender: string;
+      iv: string;
+      ciphertext: string;
+      createdAt: string;
+    }) => {
+      // Whenever we receive a socket event, re-fetch history:
+      dispatch(fetchHistory({ partnerId, token }));
+    };
+
+    socket.on("receive-message", handler);
+    return () => {
+      socket.off("receive-message", handler);
+    };
+  }, [partnerId, sharedAESKey, dispatch, token]);
 
   const send = async () => {
-    if (!partnerId || !text.trim()) return;
+    if (!partnerId || !text.trim() || !sharedAESKey) return;
     const createdAt = new Date().toISOString();
+
+    // Encrypt
+    const { iv, ciphertext } = await encryptAESGCM(sharedAESKey, text);
 
     // emit
     getSocket().emit("send-message", {
       sender: me._id,
       receiver: partnerId,
-      ciphertext: text,
+      iv,
+      ciphertext,
       createdAt,
     });
 
-    // optimistic UI
-    // dispatch(receiveMessage({ sender: me._id, text, createdAt }));
+    // ▷ Instead of local‐state push, dispatch into Redux with plaintext:
+    dispatch(
+      receiveMessage({
+        id: "temp-" + createdAt,
+        sender: me._id,
+        iv,
+        ciphertext,
+        createdAt,
+        text, // optimistic cleartext
+      })
+    );
+
+    // Clear input
     setText("");
 
-    // persist
+    // Persist on server
     await fetch(`${import.meta.env.VITE_API_URL}/message/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ receiver: partnerId, ciphertext: text }),
+      body: JSON.stringify({ receiver: partnerId, ciphertext, iv, createdAt }),
     });
   };
 
@@ -95,7 +207,8 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
     );
   }
 
-  const messages = history
+  // Filter by searchTerm on the _decrypted_ text field
+  const messagesToShow = decryptedHistory
     .filter((m) =>
       (m.text ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -110,13 +223,11 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
       <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] dark:border-[var(--color-border-darkmode)]">
         {/* Avatar + Name */}
         <div className="flex items-center gap-3">
-          {/* <span className="text-2xl">Avatar</span>
-          <span className="font-semibold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
-            Name
-          </span> */}
-
           {partner?.avatar ? (
-            <img src={partner.avatar + `/boy?username=${partner?.name}`} className="w-8 h-8 rounded-full" />
+            <img
+              src={partner.avatar + `/boy?username=${partner?.name}`}
+              className="w-8 h-8 rounded-full"
+            />
           ) : (
             <div className="w-8 h-8 rounded-full bg-gray-300" />
           )}
@@ -192,7 +303,7 @@ const MessageBox: React.FC<Props> = ({ section, selectedId }) => {
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 bg-[var(--color-background)] dark:bg-[var(--color-background-darkmode)] space-y-4"
       >
-        {messages.map((m, i) => (
+        {messagesToShow.map((m, i) => (
           <div
             key={m.createdAt + i}
             className={`

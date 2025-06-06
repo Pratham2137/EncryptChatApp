@@ -33,7 +33,7 @@ export default function ChatList({ selectedId, onSelectId, onNewChat }: Props) {
     <div className="flex flex-col h-full bg-[var(--color-card)] dark:bg-[var(--color-card-darkmode)]">
       {/* ─── Header with New Chat ─── */}
       <div className="flex items-center justify-between px-4 py-3  dark:border-[var(--color-border-darkmode)]">
-        <h2 className="text-lg font-semibold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
+        <h2 className="text-xl font-bold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
           Chats
         </h2>
         <button

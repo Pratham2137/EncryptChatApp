@@ -39,12 +39,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelectPage, selectedPage }) => {
       icon: <MdOutlineContacts />,
       iconActive: <MdContacts />,
     },
-    {
-      page: "groups",
-      title: "Groups",
-      icon: <GrGroup />,
-      iconActive: <HiMiniUserGroup />,
-    },
+    // {
+    //   page: "groups",
+    //   title: "Groups",
+    //   icon: <GrGroup />,
+    //   iconActive: <HiMiniUserGroup />,
+    // },
   ];
 
   return (

@@ -85,7 +85,7 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
     <div className="flex flex-col h-full">
       {/* header */}
       <div className="flex items-center justify-between p-4">
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
           {isSearching ? "New Chat" : "Contacts"}
         </h2>
         <button

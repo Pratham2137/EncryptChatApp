@@ -188,42 +188,47 @@ export const refreshAccessToken = (req, res) => {
 
 // Check user authentication status
 export const checkAuth = async (req, res) => {
-  // ← Add this
-  try {
-    const { refreshToken } = req.cookies;
+  // We expect the client to send the refreshToken cookie.
+  const { refreshToken } = req.cookies || {};
 
-    if (!refreshToken) {
-      return res
-        .status(401)
-        .json({ success: false, message: "No refresh token provided" });
-    }
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-
-    // Find user
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    // Optional: re-issue access token
-    const accessToken = generateAccessToken(user._id);
-
-    res.status(200).json({
-      success: true,
-      message: "User is authenticated",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-      accessToken,
+  if (!refreshToken) {
+    // No cookie at all → send HTTP 200 but success:false
+    return res.status(200).json({
+      success: false,
+      message: "No refresh token provided",
     });
-  } catch (error) {
-    console.error("checkAuth error:", error.message);
-    res
-      .status(403)
-      .json({ success: false, message: "Invalid or expired refresh token" });
+  }
+
+  try {
+    // Verify that the refresh token is valid
+    const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Look up the user
+    const user = await User.findById(payload.userId);
+    if (!user) {
+      // If user not found, still respond with HTTP 200 + success:false
+      return res.status(200).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // (Optionally: check that user.refreshToken matches the cookie you got,
+    //  but often the JWT verification step is sufficient.)
+
+    // Issue a brand-new accessToken
+    const newAccessToken = generateAccessToken(user._id);
+
+    return res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+    });
+  } catch (err) {
+    // Any error verifying the refresh token (expired, malformed, etc.)
+    // → respond 200 { success:false, message: "…expired…" }
+    return res.status(200).json({
+      success: false,
+      message: "Invalid or expired refresh token",
+    });
   }
 };
