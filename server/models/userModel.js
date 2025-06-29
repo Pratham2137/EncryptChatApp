@@ -32,10 +32,16 @@ const userSchema = new mongoose.Schema(
       type: String, // Store URL or base64 string
       default: "https://avatar.iran.liara.run/public",
     },
-    // publicKey: {
-    //   type: String, // Client's ECDH/ECC public key
-    //   required: true,
-    // },
+    // ← NEW: store the user’s ECDH public key (Base64-encoded)
+    publicKey: {
+      type: String,
+      default: null,
+    },
+    // ← NEW: store the passphrase-encrypted privateKey under AES-GCM
+    encryptedPrivateKey: {
+      iv:         { type: String, default: null }, // Base64 IV
+      ciphertext: { type: String, default: null }, // Base64 ciphertext of the JWK
+    },
     socketId: {
       type: String,
       default: null,

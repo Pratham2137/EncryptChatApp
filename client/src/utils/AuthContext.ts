@@ -6,6 +6,7 @@ export interface AuthContextType {
   login: (data: { identifier: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   getToken: () => string | null;
+  ecdhKeyPair: CryptoKeyPair | null;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);

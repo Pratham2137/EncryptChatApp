@@ -5,7 +5,9 @@ import axios from "axios";
 export interface ChatMessage {
   id?: string;
   sender: string;
-  text: string;
+  iv: string;
+  ciphertext: string;
+  text?: string; // ← we’ll fill this in on the client
   createdAt: string;
 }
 
@@ -36,6 +38,7 @@ export const fetchHistory = createAsyncThunk<
         _id: string;
         sender: string;
         ciphertext: string;
+        iv: string;
         createdAt: string;
       }[]
     >(`${import.meta.env.VITE_API_URL}/message/${partnerId}`, {
@@ -45,7 +48,8 @@ export const fetchHistory = createAsyncThunk<
     return res.data.map((msg) => ({
       id: msg._id,
       sender: msg.sender,
-      text: msg.ciphertext,
+      ciphertext: msg.ciphertext,
+      iv: msg.iv,
       createdAt: msg.createdAt,
     }));
   } catch (err: any) {
@@ -77,7 +81,7 @@ export const chatSlice = createSlice({
     builder
       .addCase(fetchHistory.pending, (s) => {
         s.status = "loading";
-        s.history = [];     
+        s.history = [];
       })
       .addCase(fetchHistory.fulfilled, (s, a) => {
         s.status = "succeeded";

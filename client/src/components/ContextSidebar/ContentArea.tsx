@@ -30,9 +30,9 @@ const ContentArea: React.FC<Props> = ({
       {section === "contacts" && (
         <ContactList selectedId={selectedId} onSelectId={onSelectId} />
       )}
-      {section === "groups" && (
+      {/* {section === "groups" && (
         <GroupList selectedId={selectedId} onSelectId={onSelectId} />
-      )}
+      )} */}
       {section === "profile" && (
         <div className="flex-1 overflow-y-auto">
           <Profile />

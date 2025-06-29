@@ -85,7 +85,7 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
     <div className="flex flex-col h-full">
       {/* header */}
       <div className="flex items-center justify-between p-4">
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold text-[var(--color-text)] dark:text-[var(--color-text-darkmode)]">
           {isSearching ? "New Chat" : "Contacts"}
         </h2>
         <button
@@ -153,7 +153,7 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                      src={u.avatar}
+                      src={u.avatar + `/boy?username=${u.name}`}
                       alt={u.avatar}
                       className="w-8 h-8 rounded-full object-cover"
                     />
@@ -196,7 +196,7 @@ const ContactList: React.FC<Props> = ({ selectedId, onSelectId }) => {
                     `}
                   >
                     <img
-                      src={c.avatar}
+                      src={c.avatar + `/boy?username=${c.name}`}
                       alt={c.avatar}
                       className="w-8 h-8 rounded-full object-cover"
                     />

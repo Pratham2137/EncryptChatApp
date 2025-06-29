@@ -103,6 +103,101 @@ export const searchUsers = async (req, res) => {
   }
 };
 
+// 1) POST /api/users/public-key
+// (Save or update the user’s PUBLIC key as Base64)
+export const setPublicKey = async (req, res) => {
+  try {
+    const userId = req.user.userId;       // from authenticateToken middleware
+    const { publicKey } = req.body;       // single string, Base64
+    if (!publicKey) {
+      return res.status(400).json({ message: "Missing publicKey" });
+    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { publicKey },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("setPublicKey error:", err);
+    return res.status(500).json({ message: "Failed to save public key" });
+  }
+};
+
+export const getPublicKey = async (req, res) => {
+  try {
+    const otherId = req.params.userId;
+    const other = await User.findById(otherId).select("publicKey");
+    if (!other) return res.status(404).json({ message: "User not found" });
+    if (!other.publicKey)
+      return res.status(404).json({ message: "Public key not set yet" });
+    res.json({ publicKey: other.publicKey });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch public key" });
+  }
+};
+
+// 2) POST /api/users/encrypted-private
+//    (Save or update the user’s encrypted PRIVATE key under AES‐GCM)
+export const setEncryptedPrivateKey = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { iv, ciphertext } = req.body;
+    if (!iv || !ciphertext) {
+      return res
+        .status(400)
+        .json({ message: "iv (Base64) and ciphertext (Base64) required" });
+    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        encryptedPrivateKey: {
+          iv,
+          ciphertext,
+        },
+      },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("setEncryptedPrivateKey error:", err);
+    return res.status(500).json({ message: "Failed to save encrypted private key" });
+  }
+};
+
+// 3) GET /api/users/encrypted-private/:userId
+//    (Fetch the encryptedPrivateKey blob { iv, ciphertext } for a given user)
+export const getEncryptedPrivateKey = async (req, res) => {
+  try {
+    const otherId = req.params.userId;
+    const other = await User.findById(otherId).select("encryptedPrivateKey");
+    if (!other) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (
+      !other.encryptedPrivateKey ||
+      !other.encryptedPrivateKey.iv ||
+      !other.encryptedPrivateKey.ciphertext
+    ) {
+      return res
+        .status(404)
+        .json({ message: "No encrypted private key available for this user" });
+    }
+    return res.json(other.encryptedPrivateKey);
+  } catch (err) {
+    console.error("getEncryptedPrivateKey error:", err);
+    return res.status(500).json({ message: "Failed to fetch encrypted private key" });
+  }
+};
+
+
 export const getContacts = async (req, res) => {
   try {
     const me = await User.findById(req.user.userId).populate(
